@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          Gmail Address Swapper
 // @namespace     http://www.natehardison.com
-// @description   This script will swap the 'To' and 'CC in the email compose pages
+// @description   This script swaps the 'To' and 'Cc' in Gmail's Compose view
 // @include       https://mail.google.com/*
 // ==/UserScript==
 
@@ -16,56 +16,11 @@ var CANVAS_ID = 'canvas_frame';
 
 // Check this often to figure out if we're in the Compose view
 var MAIN_LOOP_INTERVAL = 1000;
-
-// Check this often to figure out if our swapper link should be redisplayed.
-var DISPLAY_LOOP_INTERVAL = 100;
 // ------------------------------------------------------------------------- //
 
 function Swapper() {
   this.linkArea = null;
-  this.intervalID = null;
   this.swapLink = null;
-
-  /**
-   * This function displays our swapper link inline next to the other "Add Cc"
-   * and "Add Bcc" links. We run this function on a short interval because it
-   * turns out that Gmail reloads the linkArea element every time one of the
-   * other links in the area is clicked, and the reloading blows away our
-   * swapper link. The interval allows us to detect whether or not the swapper
-   * link still exists in the linkArea and whether or not it's visible, since
-   * we initially set the display to none so that we don't display if the To
-   * and Cc fields are both empty.
-   */
-  this.displaySwapperLink = function() {
-    if (!this.swapLink) {
-      this.swapLink = this.document().createElement("span");
-
-      // These attributes make it look and behave just like the other links
-      this.swapLink.setAttribute("class", "el");
-      this.swapLink.setAttribute("role", "link");
-      this.swapLink.setAttribute("tabindex", "2");
-
-      this.swapLink.style.display = "none";
-      this.swapLink.innerHTML = "Swap To/Cc";
-      this.swapLink.addEventListener('click', this.swap.bind(this), true);
-
-      // Now we style the link area a bit to get the padding right
-      this.linkArea.setAttribute("class", "eF");
-      this.linkArea.style.paddingBottom = "2px";
-      this.linkArea.appendChild(this.swapLink);
-    }
-
-    try {
-      if (this.document().getElementsByName('to')[0].value.length > 0 ||
-          this.document().getElementsByName('cc')[0].value.length > 0) {
-        this.swapLink.style.display = "inline";
-      } else {
-        this.swapLink.style.display = "none";
-      }
-    } catch (error) {
-      this.pause();
-    }
-  };
 
   this.document = function() {
     return document.getElementById(CANVAS_ID).contentDocument;
@@ -73,47 +28,54 @@ function Swapper() {
 
   /**
    * The initialize function needs to get us a valid reference to the linkArea,
-   * a td element where we're going to stuff our swapper link. The best way to
-   * get to the proper linkArea is to find the Cc field and go one tr up from 
-   * it. Once we've found the linkArea, we can display the swapper link.
+   * a td element where we're going to stuff our swapLink. The best way to get
+   * to the proper linkArea is to find the Cc field and go one tr up from it.
+   * Once we've found the linkArea, we can display the swapLink.
    */
   this.initialize = function() {
-    var bcc;
-    var table;
-    try {
-      cc = this.document().getElementsByName('cc')[0].parentNode.parentNode;
-      if (cc.style.display === "none") return;
-      table = cc.parentNode;
-    } catch (error) {
-      return;
-    }
-    for (var i = 0; i < table.childNodes.length; i++) {
-      if (table.childNodes[i] === cc) {
-        this.linkArea = table.childNodes[i - 1].childNodes[1];
-        break;
+    var ccTextArea = this.document().getElementsByName('cc');
+    if (ccTextArea.length > 0) {
+      var ccTableRow = ccTextArea[0].parentNode.parentNode;
+      if (ccTableRow.style.display !== "none") {
+        var table = ccTableRow.parentNode;
+        for (var i = 0; i < table.childNodes.length; i++) {
+          if (table.childNodes[i] === ccTableRow) {
+            this.linkArea = table.childNodes[i - 1].childNodes[1];
+            break;
+          }
+        }
+
+        this.swapLink = this.document().createElement("span");
+
+        // These attributes make it look and behave just like the other links
+        this.swapLink.setAttribute("class", "el");
+        this.swapLink.setAttribute("role", "link");
+        this.swapLink.setAttribute("tabindex", "2");
+
+        this.swapLink.innerHTML = "Swap To/Cc";
+        this.swapLink.addEventListener('click', this.swap.bind(this), true);
+
+        // Now we style the link area a bit to get the padding right
+        this.linkArea.setAttribute("class", "eF");
+        this.linkArea.style.paddingBottom = "3px";
+        this.linkArea.appendChild(this.swapLink);
       }
     }
-    this.intervalID = setInterval(this.displaySwapperLink.bind(this), DISPLAY_LOOP_INTERVAL);
   };
 
   /**
    * Best way to tell if we're initialized is to check if we have a valid
-   * reference to the linkArea.
+   * reference to the linkArea and an initialized swapLink.
    */
   this.initialized = function() {
-    return (this.linkArea !== undefined && this.linkArea !== null);
+    return (this.linkArea && this.swapLink);
   }
 
   /** 
-   * The pause function clears displaySwapperLink's short interval and resets
-   * the Swapper. Intended to be used when we find ourselves outside of the
-   * Compose view after being initialized.
+   * Intended to be used when we find ourselves outside of the Compose view
+   * after being initialized.
    */
-  this.pause = function() {
-    if (this.intervalID) {
-      clearInterval(this.intervalID);
-      this.intervalID = null;
-    }
+  this.reset = function() {
     this.linkArea = null;
     this.swapLink.removeEventListener('click', this.swap.bind(this), true);
     this.swapLink = null;
@@ -158,7 +120,7 @@ if (!window.top || top.location.href == window.location.href) {
       if (inComposeView() && !swapper.initialized()) {
         swapper.initialize();
       } else if (swapper.initialized() && !inComposeView()) {
-        swapper.pause();
+        swapper.reset();
       }
     }
   }, MAIN_LOOP_INTERVAL);
