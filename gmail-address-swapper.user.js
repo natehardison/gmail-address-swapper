@@ -3,6 +3,7 @@
 // @namespace     http://www.natehardison.com
 // @description   This script swaps the 'To' and 'Cc' in Gmail's Compose view
 // @include       https://mail.google.com/*
+// @match         https://mail.google.com/*
 // ==/UserScript==
 
 // ------------------------------------------------------------------------- //
