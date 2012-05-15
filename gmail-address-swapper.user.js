@@ -15,50 +15,47 @@
 var CANVAS_ID = 'canvas_frame';
 
 // Check this often to figure out if we're in the Compose view
-var MAIN_LOOP_INTERVAL = 1000;
+var CHECK_VIEW_INTERVAL = 500;
 // ------------------------------------------------------------------------- //
 
 function Swapper() {
-  this.linkArea = null;
-  this.swapLink = null;
-
-  this.document = function() {
-    return document.getElementById(CANVAS_ID).contentDocument;
-  };
-
   /**
    * The initialize function needs to get us a valid reference to the linkArea,
    * a td element where we're going to stuff our swapLink. The best way to get
    * to the proper linkArea is to find the Cc field and go one tr up from it.
-   * Once we've found the linkArea, we can display the swapLink.
+   * Once we've found the linkArea, we can display the swapLink. The trick here
+   * is that we cannot initialize until the tr containing the Cc textarea is
+   * visible, since Gmail dynamically inserts an extra tr between the To tr and
+   * the Cc tr when revealing the Cc tr.
    */
   this.initialize = function() {
-    var ccTextArea = this.document().getElementsByName('cc');
+    var ccTextArea = $('cc');
     if (ccTextArea.length > 0) {
       var ccTableRow = ccTextArea[0].parentNode.parentNode;
       if (ccTableRow.style.display !== "none") {
         var table = ccTableRow.parentNode;
         for (var i = 0; i < table.childNodes.length; i++) {
           if (table.childNodes[i] === ccTableRow) {
-            this.linkArea = table.childNodes[i - 1].childNodes[1];
+            linkArea = table.childNodes[i - 1].childNodes[1];
             break;
           }
         }
 
-        this.swapLink = this.document().createElement("span");
+        // Yikes. What a craptastic jQuery-like thing.
+        swapLink = $().createElement("span");
 
         // These attributes make it look and behave just like the other links
-        this.swapLink.setAttribute("class", "el");
-        this.swapLink.setAttribute("role", "link");
-        this.swapLink.setAttribute("tabindex", "2");
+        swapLink.setAttribute("class", "el");
+        swapLink.setAttribute("role", "link");
+        swapLink.setAttribute("tabindex", "2");
 
-        this.swapLink.innerHTML = "Swap To/Cc";
-        this.swapLink.addEventListener('click', this.swap.bind(this), true);
+        swapLink.innerHTML = "Swap To/Cc";
+        swapLink.addEventListener('click', swap.bind(this), true);
 
         // Now we style the link area a bit to get the padding right
-        this.linkArea.setAttribute("class", "eF");
-        this.linkArea.style.paddingBottom = "3px";
-        this.linkArea.appendChild(this.swapLink);
+        linkArea.setAttribute("class", "eF");
+        linkArea.style.paddingBottom = "3px";
+        linkArea.appendChild(swapLink);
       }
     }
   };
@@ -68,7 +65,7 @@ function Swapper() {
    * reference to the linkArea and an initialized swapLink.
    */
   this.initialized = function() {
-    return (this.linkArea && this.swapLink);
+    return (linkArea && swapLink);
   }
 
   /** 
@@ -76,14 +73,35 @@ function Swapper() {
    * after being initialized.
    */
   this.reset = function() {
-    this.linkArea = null;
-    this.swapLink.removeEventListener('click', this.swap.bind(this), true);
-    this.swapLink = null;
+    linkArea = null;
+    swapLink.removeEventListener('click', swap.bind(this), true);
+    swapLink = null;
   }
 
-  this.swap = function() {
-    var to = this.document().getElementsByName('to')[0];
-    var cc = this.document().getElementsByName('cc')[0];
+// ------ PRIVATE --------------
+
+  var linkArea = null;
+  var swapLink = null;
+
+  /**
+   * Yes, I know this is bastardizing jQuery...shoot me.
+   */
+  var $ = function(str) {
+    var canvasDocument = document.getElementById(CANVAS_ID).contentDocument;
+    if (str) {
+      if (str.indexOf('#') === 0) {
+        return canvasDocument.getElementById(str.slice(1));
+      } else if (str.indexOf('.') === 0) {
+        return canvasDocument.getElementsByClassName(str.slice(1));
+      }
+      return canvasDocument.getElementsByName(str);      
+    }
+    return canvasDocument;
+  };
+
+  var swap = function() {
+    var to = $('to')[0];
+    var cc = $('cc')[0];
     var temp = to.value;
     to.value = cc.value;
     cc.value = temp;
@@ -123,5 +141,5 @@ if (!window.top || top.location.href == window.location.href) {
         swapper.reset();
       }
     }
-  }, MAIN_LOOP_INTERVAL);
+  }, CHECK_VIEW_INTERVAL);
 }
