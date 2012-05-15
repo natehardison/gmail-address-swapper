@@ -47,7 +47,7 @@ function Swapper() {
 
       this.swapperLink.style.display = "none";
       this.swapperLink.innerHTML = "Swap To/Cc";
-      this.swapperLink.addEventListener('click', this.swap.bind(this), false);
+      this.swapperLink.addEventListener('click', this.swap.bind(this), true);
     }
 
     if (this.swapperLink.parentNode !== this.linkArea) {
@@ -114,7 +114,7 @@ function Swapper() {
       clearInterval(this.intervalID);  
     }
     this.linkArea = null;
-    this.swapperLink.removeEventListener('click', this.swap.bind(this), false);
+    this.swapperLink.removeEventListener('click', this.swap.bind(this), true);
     this.swapperLink = null;
   }
 
