@@ -67,7 +67,7 @@ function Swapper() {
    */
   this.initialized = function() {
     return (linkArea && swapLink);
-  }
+  };
 
   /** 
    * Intended to be used when we find ourselves outside of the Compose view
@@ -77,7 +77,7 @@ function Swapper() {
     linkArea = null;
     swapLink.removeEventListener('click', swap.bind(this), true);
     swapLink = null;
-  }
+  };
 
 // ------ PRIVATE --------------
 
