@@ -90,9 +90,6 @@ function Swapper() {
         break;
       }
     }
-    if (this.intervalID) {
-      clearInterval(this.intervalID);
-    }
     this.intervalID = setInterval(this.displaySwapperLink.bind(this), DISPLAY_LOOP_INTERVAL);
   };
 
@@ -111,7 +108,8 @@ function Swapper() {
    */
   this.pause = function() {
     if (this.intervalID) {
-      clearInterval(this.intervalID);  
+      clearInterval(this.intervalID);
+      this.intervalID = null;
     }
     this.linkArea = null;
     this.swapperLink.removeEventListener('click', this.swap.bind(this), true);
